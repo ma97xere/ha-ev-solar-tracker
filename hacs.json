@@ -1,4 +1,7 @@
 {
   "name": "EV Solar Charging Tracker",
-  "render_readme": true
+  "render_readme": true,
+  "country": "DE",
+  "content_in_root": false,
+  "filename": "dashboard.yaml"
 }
