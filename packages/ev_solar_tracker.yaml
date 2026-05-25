@@ -1,1 +1,99 @@
+# ===================================================================
+# UNIVERSAL EV SOLAR CHARGING TRACKER
+# ===================================================================
 
+# Helfer-Sensoren zur Konfiguration über das Dashboard
+input_text:
+  ev_tracker_car_power_entity:
+    name: "Sensor: Auto Ladeleistung (Watt)"
+    initial: "sensor.DEIN_AUTO_WATT_SENSOR"
+    icon: mdi:car-electric
+  ev_tracker_grid_power_entity:
+    name: "Sensor: Haus Netzbezug (Watt)"
+    initial: "sensor.DEIN_NETZBEZUG_SENSOR"
+    icon: mdi:transmission-tower
+
+input_number:
+  ev_tracker_price_grid:
+    name: "Tarif Netzbezug (€/kWh)"
+    initial: 0.34
+    min: 0.00
+    max: 2.00
+    step: 0.01
+    mode: box
+  ev_tracker_price_pv:
+    name: "Tarif PV-Wert (€/kWh)"
+    initial: 0.094
+    min: 0.00
+    max: 2.00
+    step: 0.001
+    mode: box
+  ev_tracker_storage_loss:
+    name: "Speicher- & Ladeverlust (%)"
+    initial: 0
+    min: 0
+    max: 30
+    step: 1
+    mode: slider
+    unit_of_measurement: "%"
+
+# Template-Sensoren für die Berechnung
+template:
+  - sensor:
+      - name: "Tesla Leistung aus Netz"
+        unique_id: tesla_power_grid_split
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set car = states(states('input_text.ev_tracker_car_power_entity')) | float(0) %}
+          {% set grid = states(states('input_text.ev_tracker_grid_power_entity')) | float(0) %}
+          {% if car <= 10 or grid <= 0 %} 0
+          {% else %} {{ [car, grid] | min | round(1) }} {% endif %}
+
+      - name: "Tesla Leistung aus PV"
+        unique_id: tesla_power_pv_split
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set car = states(states('input_text.ev_tracker_car_power_entity')) | float(0) %}
+          {% set grid = states(states('input_text.ev_tracker_grid_power_entity')) | float(0) %}
+          {% set loss = states('input_number.ev_tracker_storage_loss') | float(0) / 100 %}
+          {% if car <= 10 %} 0
+          {% else %}
+            {% set grid_part = 0 if grid <= 0 else [car, grid] | min %}
+            {{ ((car - grid_part) * (1 + loss)) | round(1) }}
+          {% endif %}
+
+      - name: "Tesla Ladekosten Gesamt Monat"
+        unique_id: tesla_cost_total_monthly_sum
+        unit_of_measurement: "€"
+        device_class: monetary
+        state: >
+          {% set n = states('sensor.tesla_energie_netz_monat') | float(0) %}
+          {% set p = states('sensor.tesla_energie_pv_monat') | float(0) %}
+          {{ (n * states('input_number.ev_tracker_price_grid') | float(0) + p * states('input_number.ev_tracker_price_pv') | float(0)) | round(2) }}
+
+# Integration & Zähler
+sensor:
+  - platform: integration
+    source: sensor.tesla_leistung_aus_netz
+    name: "Tesla Energie aus Netz Gesamt"
+    unit_prefix: k
+    round: 3
+    method: left
+  - platform: integration
+    source: sensor.tesla_leistung_aus_pv
+    name: "Tesla Energie aus PV Gesamt"
+    unit_prefix: k
+    round: 3
+    method: left
+
+utility_meter:
+  tesla_energie_netz_monat:
+    source: sensor.tesla_energie_aus_netz_gesamt
+    cycle: monthly
+  tesla_energie_pv_monat:
+    source: sensor.tesla_energie_aus_pv_gesamt
+    cycle: monthly
