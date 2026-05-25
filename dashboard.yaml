@@ -1,0 +1,30 @@
+type: vertical-stack
+cards:
+  # Konfigurationsbereich
+  - type: entities
+    title: Konfiguration
+    show_header_toggle: false
+    entities:
+      - input_text.ev_tracker_car_power_entity
+      - input_text.ev_tracker_grid_power_entity
+      - input_number.ev_tracker_price_grid
+      - input_number.ev_tracker_price_pv
+      - input_number.ev_tracker_storage_loss
+
+  # Übersichtskacheln
+  - type: grid
+    columns: 3
+    square: false
+    cards:
+      - type: tile
+        entity: sensor.tesla_ladekosten_gesamt_monat
+        name: Kosten Monat
+        color: green
+      - type: tile
+        entity: sensor.tesla_energie_netz_monat
+        name: Netzbezug
+        color: red
+      - type: tile
+        entity: sensor.tesla_energie_pv_monat
+        name: PV-Überschuss
+        color: amber
