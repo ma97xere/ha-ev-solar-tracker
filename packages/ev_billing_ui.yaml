@@ -1,1 +1,77 @@
+title: "EV Verwaltung & Abrechnung"
+views:
+  - title: Backend
+    type: sections
+    max_columns: 2
+    sections:
+      # --- ABSCHNITT 1: KONFIGURATION ---
+      - type: grid
+        title: "⚙️ System-Konfiguration"
+        cards:
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - input_text.ev_tracker_car_power_entity
+              - input_text.ev_tracker_grid_power_entity
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - input_number.ev_tracker_price_grid
+              - input_number.ev_tracker_price_pv
+              - input_number.ev_tracker_storage_loss
 
+      # --- ABSCHNITT 2: LIVE METRIKEN ---
+      - type: grid
+        title: "📊 Status (Aktueller Monat)"
+        cards:
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: tile
+                entity: sensor.tesla_energie_netz_monat
+                name: Netzbezug
+                color: red
+              - type: tile
+                entity: sensor.tesla_energie_pv_monat
+                name: PV-Strom
+                color: amber
+          - type: tile
+            entity: sensor.tesla_ladekosten_gesamt_monat
+            name: Offener Betrag (Monat)
+            color: green
+            icon: mdi:bank-transfer-out
+
+      # --- ABSCHNITT 3: DIE ABRECHNUNGSTABELLE ---
+      - type: grid
+        title: "📅 Jahresabschluss"
+        cards:
+          - type: markdown
+            content: |
+              {%- set ns = namespace(table='') %}
+              {%- for m in [
+                (1, 'Januar', 'jan_netz', 'jan_pv', 'jan_euro'),
+                (2, 'Februar', 'feb_netz', 'feb_pv', 'feb_euro'),
+                (3, 'März', 'mar_netz', 'mar_pv', 'mar_euro'),
+                (4, 'April', 'apr_netz', 'apr_pv', 'apr_euro'),
+                (5, 'Mai', 'mai_netz', 'mai_pv', 'mai_euro'),
+                (6, 'Juni', 'jun_netz', 'jun_pv', 'jun_euro'),
+                (7, 'Juli', 'jul_netz', 'jul_pv', 'jul_euro'),
+                (8, 'August', 'aug_netz', 'aug_pv', 'aug_euro'),
+                (9, 'September', 'sep_netz', 'sep_pv', 'sep_euro'),
+                (10, 'Oktober', 'okt_netz', 'okt_pv', 'okt_euro'),
+                (11, 'November', 'nov_netz', 'nov_pv', 'nov_euro'),
+                (12, 'Dezember', 'dez_netz', 'dez_pv', 'dez_euro')
+              ] %}
+                {%- set is_current = (now().month == m[0]) %}
+                {%- set netz = states('sensor.tesla_energie_netz_monat') | float(0) if is_current else state_attr('sensor.tesla_monatsarchiv', m[2]) | float(0) %}
+                {%- set pv = states('sensor.tesla_energie_pv_monat') | float(0) if is_current else state_attr('sensor.tesla_monatsarchiv', m[3]) | float(0) %}
+                {%- set euro = states('sensor.tesla_ladekosten_gesamt_monat') | float(0) if is_current else state_attr('sensor.tesla_monatsarchiv', m[4]) | float(0) %}
+                {%- if netz > 0 or pv > 0 %}
+                  {%- set row = "| **" ~ m[1] ~ "** | " ~ ("%.2f" | format(netz) | replace('.', ',')) ~ " kWh | " ~ ("%.2f" | format(pv) | replace('.', ',')) ~ " kWh | **" ~ ("%.2f" | format(euro) | replace('.', ',')) ~ " €** |\n" %}
+                  {%- set ns.table = ns.table ~ row %}
+                {%- endif %}
+              {%- endfor %}
+              | Monat | Netzbezug | PV-Strom | Gesamtkosten |
+              | :--- | :--- | :--- | :--- |
+              {{ ns.table | trim }}
