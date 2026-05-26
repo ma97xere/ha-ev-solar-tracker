@@ -1,25 +1,38 @@
-# EV Solar Charging Tracker for Home Assistant
+# EV Solar Charging Tracker (Admin Panel Edition)
 
-Ein natives Home Assistant Paket zur exakten Trennung von Ladestrom (E-Auto) in PV-Überschuss und Netzbezug. Das Setup erfordert keine Drittanbieter-Software und wird nach der Installation vollständig über die Home Assistant Benutzeroberfläche konfiguriert.
+Ein natives Home Assistant Paket zur exakten Trennung von Ladestrom (E-Auto) in PV-Überschuss und Netzbezug. 
+Diese Edition installiert sich nicht als normales Dashboard, sondern als **eigenständige Verwaltungsplattform** (Backend) mit einem cleanen, Apple-like UI in der linken Seitenleiste.
 
-## Funktionen
+## Highlights
+* **Eigener Menüpunkt:** Nistet sich nahtlos in die Home Assistant Seitenleiste ein.
+* **Apple-like UI:** Nutzt das moderne Sections-Layout für eine aufgeräumte Backend-Optik.
+* **Zero-Code Konfiguration:** Alle Tarife, Entitäten und Speicherverluste werden direkt über die Oberfläche verwaltet.
+* **Smarte Abrechnung:** Automatische, dynamische Jahrestabelle (Jan - Dez) für die exakte Kostenabrechnung.
 
-* **Echtzeit-Aufteilung:** Berechnet den Anteil von Netz- und PV-Strom anhand der aktuellen Ladeleistung und des Hausverbrauchs.
-* **UI-Konfiguration:** Sensoren, Stromtarife und Speicherverluste werden direkt über das Dashboard eingestellt. Kein Eingriff in den YAML-Code nötig.
-* **Speicher- und Ladeverluste:** Optionaler prozentualer Aufschlag, um AC/DC-Wandlungsverluste (Heimspeicher) realistisch abzubilden.
-* **Dynamische Abrechnungstabelle:** Eine Markdown-Tabelle fasst die monatlichen Kosten und kWh-Werte für das aktuelle Jahr zusammen. Leere Monate werden automatisch ausgeblendet.
+## 🚀 Installation (In 5 Minuten)
 
-## Voraussetzungen
+### 1. Ordnerstruktur anlegen
+Erstelle in deinem Home Assistant `config`-Verzeichnis zwei neue Ordner:
+* `packages`
+* `panels`
 
-Das System benötigt lediglich zwei bestehende Sensoren in Home Assistant:
-1.  Aktuelle Ladeleistung des Fahrzeugs in Watt.
-2.  Aktueller Netzbezug des Hauses in Watt.
+### 2. Dateien ablegen
+* Kopiere die Datei `ev_solar_tracker.yaml` aus diesem Repository in den Ordner `packages`.
+* Kopiere die Datei `ev_billing_ui.yaml` aus diesem Repository in den Ordner `panels`.
 
-## Installation
-
-### 1. Packages aktivieren
-Stelle sicher, dass Home Assistant YAML-Pakete unterstützt. Füge dazu Folgendes in deine `configuration.yaml` ein, falls noch nicht vorhanden:
+### 3. configuration.yaml anpassen
+Öffne deine `configuration.yaml` und füge folgende Zeilen ein, um das Backend zu aktivieren und das neue Panel in der Seitenleiste zu registrieren:
 
 ```yaml
 homeassistant:
   packages: !include_dir_named packages
+
+lovelace:
+  mode: yaml
+  dashboards:
+    ev-abrechnung:
+      mode: yaml
+      title: Abrechnung
+      icon: mdi:invoice-text-outline
+      show_in_sidebar: true
+      filename: panels/ev_billing_ui.yaml
